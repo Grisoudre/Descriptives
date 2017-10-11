@@ -22,7 +22,7 @@ shinyUI(
                         )
                         )
 
-                        ,theme=shinytheme("united"),
+                        ,theme=shinytheme("simplex"),
                         (column(12,h6('ATTENTION : Avant toute action,
                                     cliquer sur "Open in browser", sans quoi les
                                     boutons et téléchargements ne fonctionneront pas.'))),
@@ -162,7 +162,7 @@ shinyUI(
                       downloadButton("DlTable","Télécharger la table"),
                              h4("3. Graphique"))),
                              fluidRow(column(3,
-                             h4("Options et choix graphiques"),
+                             h4("Options graphiques :"),
                              uiOutput("ChoixGrapheAffichage"),
                              uiOutput("ChoixGrapheOrdonne"),
                              uiOutput("ChoixGrapheEmpile"),
@@ -177,15 +177,17 @@ shinyUI(
                              textInput("TextTitre","Titre (auto. si vide) :", "")),
 
                              column(9,
-                                    h4("3. Graphique"),
+                                    h4("Graphique :"),
 
                                     plotOutput("Graphique") ,
                                     textOutput("Population2"),
                                     hr(),
-                                    h5 ("Téléchargement"),
-                                    column(3,numericInput("largeur", "Largeur du graphe téléchargé (px)", 640)),
+                                    h5 ("Téléchargement :"),
+                                    downloadButton("DlGraphe","Télécharger le graphe"),
+                                    fluidRow(column(3,numericInput("largeur", "Largeur du graphe téléchargé (px)", 640)),
                                     column(3,numericInput("hauteur","Hauteur du graphe téléchargé (px)", 480)),
-                                    column(3, hr(),downloadButton("DlGraphe","Télécharger le graphe"))
+                                    column(3,numericInput("resolution","Résolution", 80)) )
+
                              ))
                       )),
 

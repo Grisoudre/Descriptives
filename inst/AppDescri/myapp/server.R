@@ -1362,8 +1362,9 @@ shinyServer(function(input, output, session) {
 
       largeur <- input$largeur
       hauteur <- input$hauteur
+      resolution <- input$resolution
 
-      png(file,  width = largeur, height = hauteur, units = "px")
+      png(file,  width = largeur, height = hauteur, units = "px", res = resolution)
       Graphe <- Graphique()
 
       print(Graphe)
