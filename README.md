@@ -12,6 +12,6 @@ devtools::install_github("Grisoudre/Descriptives")
 **Ouverture de l'application :**
 ```{r}
 library(Descriptives)
-Descr()
+Descri()
 ```
 Puis, sur la nouvelle fenêtre, cliquer sur "Open in browser".
