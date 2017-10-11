@@ -171,8 +171,8 @@ shinyUI(
                              uiOutput("ChoixGrapheSansNA"),
                              uiOutput("ChoixGrapheSansVide"),
                              uiOutput("ChoixGrapheSansNAVar1"),
-                             uiOutput("ChoixGrapheSansNAVar2"),
                              uiOutput("ChoixGrapheSansVideVar1"),
+                             uiOutput("ChoixGrapheSansNAVar2"),
                              uiOutput("ChoixGrapheSansVideVar2"),
                              textInput("TextTitre","Titre (auto. si vide) :", "")),
 
