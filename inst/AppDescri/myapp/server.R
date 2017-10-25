@@ -10,6 +10,7 @@ library(ggplot2)
 library(forcats)
 library(scales)
 library(stringr)
+library(shinyjqui)
 
 options(shiny.maxRequestSize=30*1024^2)
 
@@ -102,7 +103,8 @@ shinyServer(function(input, output, session) {
     }
   })
 
-
+# B/ Sélection des individus
+#===============================================
 
   # Listes déroulantes dynamiques :
 
@@ -273,7 +275,7 @@ shinyServer(function(input, output, session) {
   })
 
 
-  # B/ Création de la table selon les sous-ensembles définis :
+  # Création de la table selon les sous-ensembles définis :
   #===========================================================
 
 
@@ -379,7 +381,7 @@ shinyServer(function(input, output, session) {
   })
 
 #====================================================
-# Choix des variables et de leurs types pour les croisements
+# C/ Choix des variables et de leurs types pour les croisements
 #====================================================
 
 
@@ -404,6 +406,16 @@ shinyServer(function(input, output, session) {
     )
 
     selectInput("VariableCrois2", "2ème Variable (en colonnes, si 2 variables) :",
+                choices=as.list(c(" ",names(test3()))),selected=" ")
+  })
+  output$SelectFacetGrid <- renderUI ({
+
+    TableCrois2 <- TableCrois2()
+    VariableCrois1 <- input$VariableCrois1
+    VariableCrois2 <- input$VariableCrois2
+
+
+    selectInput("FacetGrid", "Séparer les graphiques selon :",
                 choices=as.list(c(" ",names(test3()))),selected=" ")
   })
 
@@ -472,6 +484,10 @@ shinyServer(function(input, output, session) {
     }
   })
 
+
+  # Options pour les tables
+  #================================================
+
   output$ChoixReprez <- renderUI({
     TableCrois2 <- TableCrois2()
     VariableCrois1 <-  input$VariableCrois1
@@ -511,10 +527,73 @@ shinyServer(function(input, output, session) {
     if ((class(TableCrois2[,VariableCrois1])=="character" |
          class(TableCrois2[,VariableCrois1])=="logical") &
         VariableCrois2 == " ") {
-      checkboxInput("Trier", "Tri décroissant", value=FALSE)
+      checkboxInput("Trier", "Ou bien tri par effectifs décroissants", value=FALSE)
     }
 
   })
+  output$ChoixCumul <- renderUI({
+    TableCrois2 <- TableCrois2()
+    VariableCrois1 <-  input$VariableCrois1
+    VariableCrois2 <-  input$VariableCrois2
+
+    if ((class(TableCrois2[,VariableCrois1])=="character" |
+         class(TableCrois2[,VariableCrois1])=="logical") &
+        VariableCrois2 == " ") {
+      checkboxInput("Cumul", "% cumulés", value=FALSE)
+    }
+
+  })
+
+  ## Modalités pour l'ordre :
+
+  output$ChoixOrdreTab1 <- renderUI({
+
+    TableCrois2 <- TableCrois2()
+    VariableCrois1 <- input$VariableCrois1
+    ModaOrdre <- ModaOrdre()
+
+    if ((class(TableCrois2[,VariableCrois1])=="character" |
+         class(TableCrois2[,VariableCrois1])=="logical") )
+    {
+      selectizeInput(inputId = 'OrdreTab1', label = "de la variable 1",
+                     choices =  ModaOrdre,
+                     multiple = TRUE, width = '100%')
+    }
+
+  })
+  output$ChoixOrdreTab2 <- renderUI({
+
+    TableCrois2 <- TableCrois2()
+    VariableCrois2 <- input$VariableCrois2
+    ModaOrdre <- ModaOrdreVar2()
+
+    if ((class(TableCrois2[,VariableCrois2])=="character" |
+         class(TableCrois2[,VariableCrois2])=="logical") )
+    {
+      selectizeInput(inputId = 'OrdreTab2', label = "de la variable 2",
+                     choices =  ModaOrdre,
+                     multiple = TRUE, width = '100%')
+    }
+
+  })
+
+  output$ChoixOrdreGrid <- renderUI({
+
+    TableCrois2 <- TableCrois2()
+    VariableCrois2 <- input$VariableCrois2
+    ModaOrdreGrid <- ModaOrdreGrid()
+    FacetGrid <- input$FacetGrid
+    if (FacetGrid != " " )
+    {
+      selectizeInput(inputId = 'OrdreFacetGrid', label = "Ordre des modalités",
+                     choices =  ModaOrdreGrid,
+                     multiple = TRUE, width = '100%')
+    }
+
+  })
+
+  # Options pour les graphiques
+  #=========================================================
 
   output$ChoixAjoutEns <- renderUI({
     TableCrois2 <- TableCrois2()
@@ -565,29 +644,70 @@ shinyServer(function(input, output, session) {
 
   })
 
+
+  # E/ Création du tableau
+  #=======================================================
+
+
   Tableau <- reactive ({
     TableCrois2 <- TableCrois2()
     VariableCrois1 <-  input$VariableCrois1
     VariableCrois2 <-  input$VariableCrois2
     Reprez <- input$Reprez
     Trier <- ifelse (input$Trier == TRUE, "dec","")
+    Cumul <- input$Cumul
     AfficherNA <- input$AfficherNA
+    OrdreTab1 <- input$OrdreTab1
+    OrdreTab2 <- input$OrdreTab2
 
     # 1er cas : Une seule variable quali
+#------------------------------------------------------
+
 
     if ((class(TableCrois2[,VariableCrois1])=="character" |
          class(TableCrois2[,VariableCrois1])=="logical") &
         VariableCrois2 == " ") {
-      t<- freq(TableCrois2[,VariableCrois1], sort=Trier,total = T)
+
+
+
+      if (Cumul == TRUE) {
+        t<- freq(TableCrois2[,VariableCrois1], sort=Trier, total = T, cum = T)
+        t$Modalites <- row.names(t)
+        t <- t[,c(6,1:5)]
+        names(t)[1] <- VariableCrois1
+        names(t)[2] <- "Effectifs"
+
+        if (is.null(OrdreTab1)==F) {
+
+          OrdreTab1[OrdreTab1 == " "] <- ""
+          OrdreTab1 <- c(OrdreTab1, "NA","Total")
+          t <- t %>% dplyr::slice(match(OrdreTab1,eval(parse(text=VariableCrois1)) ))
+        }
+        t
+
+
+
+      } else if (Cumul == FALSE) {
+      t<- freq(TableCrois2[,VariableCrois1], sort=Trier, total = T)
       t$Modalites <- row.names(t)
       t <- t[,c(4,1:3)]
       names(t)[1] <- VariableCrois1
       names(t)[2] <- "Effectifs"
+
+      if (is.null(OrdreTab1)==F) {
+        OrdreTab1[OrdreTab1 == " "] <- ""
+        OrdreTab1 <- c(OrdreTab1, "NA","Total")
+        t <- t %>% dplyr::slice(match(OrdreTab1,eval(parse(text=VariableCrois1)) ))
+      }
       t
+
+
+      }
     }
 
 
     # 2ème cas : une seule variable quanti :
+    #------------------------------------------------------
 
     else if ((class(TableCrois2[,VariableCrois1])=="integer" |
               class(TableCrois2[,VariableCrois1])=="numeric") &
@@ -605,106 +725,471 @@ shinyServer(function(input, output, session) {
     }
 
     # 3ème cas : les deux variables sont quali / logiques :
+    #------------------------------------------------------
+
+
     else if  ((class(TableCrois2[,VariableCrois1])=="character" |
         class(TableCrois2[,VariableCrois1])=="logical") &
         (class(TableCrois2[,VariableCrois2])=="character" |
          class(TableCrois2[,VariableCrois2])=="logical") )
 
       {
+
+
       if (Reprez == "% colonnes") {
       if (AfficherNA == TRUE) {
         t<-as.data.frame.matrix(cprop(table(TableCrois2[,VariableCrois1],
                                                  TableCrois2[,VariableCrois2], useNA = "always")))
 
         t$temp_VarCrois1 <- row.names(t)
-        t <- renomme.variable(t, "","<NA>")
-        t <- renomme.variable(t, "V1","")
+        names(t)[is.na(names(t))]<-"NA"
+        t <- renomme.variable(t, "V1"," ")
         t <- t[, c(ncol(t),1:(ncol(t)-1))]
         names(t)[1] <- VariableCrois1
+        t[,1][is.na(t[,1])]<- "NA"
+
+
+
+        if (is.null(OrdreTab1)==F) {
+          OrdreTab1 [OrdreTab1 == " " ]<- ""
+          OrdreTab1 <- c(OrdreTab1, "Total")
+          t <- t %>% dplyr::slice(match(OrdreTab1,eval(parse(text=VariableCrois1)) ))
+
+        }
+
+        if (is.null(OrdreTab2)==F) {
+
+          OrdreTab2 <- c(OrdreTab2,"Ensemble")
+
+          t <-data.frame(t(t), stringsAsFactors = F)
+
+          t[1,][t[1,]==""]<-"Vide_Temp"
+          names(t) <- t[1,]
+          t <- t[-1,]
+          t$t_temp <- row.names(t)
+          t$t_temp[t$t_temp=="V1"]<-""
+          t <- t %>% dplyr::slice(match(OrdreTab2,t_temp ))
+          t <-data.frame(t(t), stringsAsFactors = F)
+
+          names(t) <- t[nrow(t),]
+          t <- t[-nrow(t),]
+
+          t$temp_VarCrois1 <- row.names(t)
+
+          t <- t[, c(ncol(t),1:(ncol(t)-1))]
+          names(t)[1] <- VariableCrois1
+          t[,VariableCrois1][t[,VariableCrois1]=="Vide_Temp"]<-""
+
+        }
+
+
         t
-      } else {
+
+      }
+        else {
         t<-as.data.frame.matrix(cprop(table(TableCrois2[,VariableCrois1],
                                                  TableCrois2[,VariableCrois2])))
 
         t$temp_VarCrois1 <- row.names(t)
-        t <- renomme.variable(t, "V1","")
+        t <- renomme.variable(t, "V1"," ")
         t <- t[, c(ncol(t),1:(ncol(t)-1))]
         names(t)[1] <- VariableCrois1
+
+        if (is.null(OrdreTab1)==F) {
+          OrdreTab1 [OrdreTab1 == " " ]<- ""
+          OrdreTab1 <- c(OrdreTab1, "Total")
+          t <- t %>% dplyr::slice(match(OrdreTab1,eval(parse(text=VariableCrois1)) ))
+
+        }
+
+        if (is.null(OrdreTab2)==F) {
+          OrdreTab2 <- c(OrdreTab2,"Ensemble")
+
+          t <-data.frame(t(t), stringsAsFactors = F)
+
+          t[1,][t[1,]==""]<-"Vide_Temp"
+          names(t) <- t[1,]
+          t <- t[-1,]
+          t$t_temp <- row.names(t)
+          t$t_temp[t$t_temp=="V1"]<-""
+          t <- t %>% dplyr::slice(match(OrdreTab2,t_temp ))
+          t <-data.frame(t(t), stringsAsFactors = F)
+
+          names(t) <- t[nrow(t),]
+          t <- t[-nrow(t),]
+
+          t$temp_VarCrois1 <- row.names(t)
+
+          t <- t[, c(ncol(t),1:(ncol(t)-1))]
+          names(t)[1] <- VariableCrois1
+          t[,VariableCrois1][t[,VariableCrois1]=="Vide_Temp"]<-""
+
+        }
         t
 
       }
 
-      } else if (Reprez == "Effectifs") {
-        if (AfficherNA == TRUE) {
-        t<-as.data.frame.matrix(addmargins(table(TableCrois2[,VariableCrois1],
-                                  TableCrois2[,VariableCrois2], useNA = "always")))
+      }
 
-        t$temp_VarCrois1 <- row.names(t)
-        t <- renomme.variable(t, "","<NA>")
-        t <- renomme.variable(t, "V1","")
-        t <- t[, c(ncol(t),1:(ncol(t)-1))]
-        names(t)[1] <- VariableCrois1
-        t
-        } else {
+      else if (Reprez == "Effectifs") {
+        if (AfficherNA == TRUE) {
+
           t<-as.data.frame.matrix(addmargins(table(TableCrois2[,VariableCrois1],
-                                         TableCrois2[,VariableCrois2])))
+                                                   TableCrois2[,VariableCrois2], useNA = "always")))
 
           t$temp_VarCrois1 <- row.names(t)
-          t <- renomme.variable(t, "V1","")
+          names(t)[is.na(names(t))]<- "NA"
+          names(t)[names(t)=="V1"]<- "Vide_Temp"
+
           t <- t[, c(ncol(t),1:(ncol(t)-1))]
           names(t)[1] <- VariableCrois1
+          t[,VariableCrois1] [is.na(t[,VariableCrois1])]<-"NA"
+
+
+          if (is.null(OrdreTab1)==F) {
+
+            OrdreTab1 [OrdreTab1 == " " ]<- ""
+            OrdreTab1 <- c(OrdreTab1,"NA", "Sum")
+            t <- t %>% dplyr::slice(match(OrdreTab1,eval(parse(text=VariableCrois1)) ))
+
+            names(t)[names(t)=="Vide_Temp"]<- ""
+
+
+          }
+
+          if (is.null(OrdreTab2)==F) {
+
+            OrdreTab2 [OrdreTab2 == " " ]<- ""
+            OrdreTab2 <- c(OrdreTab2,"NA","Sum")
+
+
+            names(t)[names(t)==""]<- "Vide_Temp"
+
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+
+            names(t) <- t[1,]
+            t <- t[-1,]
+            t$t_temp <- row.names(t)
+            t$t_temp[t$t_temp=="Vide_Temp"]<-""
+            t <- t %>% dplyr::slice(match(OrdreTab2,t_temp ))
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+            names(t) <- t[nrow(t),]
+            t <- t[-nrow(t),]
+
+            t$temp_VarCrois1 <- row.names(t)
+
+            t <- t[, c(ncol(t),1:(ncol(t)-1))]
+            names(t)[1] <- VariableCrois1
+            t[,VariableCrois1][t[,VariableCrois1]=="Vide_Temp"]<-""
+
+
+          }
+
+
+          names(t)[names(t)=="Vide_Temp"]<- ""
           t
 
-        }
-      } else if (Reprez == "% lignes") {
+        } else
+          {
 
-        if (AfficherNA == TRUE) {
-          t<-as.data.frame.matrix(rprop(table(TableCrois2[,VariableCrois1],
-                                              TableCrois2[,VariableCrois2], useNA = "always")))
-
-          t$temp_VarCrois1 <- row.names(t)
-          t <- renomme.variable(t, "","<NA>")
-          t <- renomme.variable(t, "V1","")
-          t <- t[, c(ncol(t),1:(ncol(t)-1))]
-          names(t)[1] <- VariableCrois1
-          t
-        } else {
-          t<-as.data.frame.matrix(rprop(table(TableCrois2[,VariableCrois1],
-                                              TableCrois2[,VariableCrois2])))
+          t<-as.data.frame.matrix(addmargins(table(TableCrois2[,VariableCrois1],
+                                                   TableCrois2[,VariableCrois2])))
 
           t$temp_VarCrois1 <- row.names(t)
-          t <- renomme.variable(t, "V1","")
+          names(t)[names(t)=="V1"]<- "Vide_Temp"
+
           t <- t[, c(ncol(t),1:(ncol(t)-1))]
           names(t)[1] <- VariableCrois1
-          t
 
-        }
 
-      } else if (Reprez == "% totaux") {
-        if (AfficherNA == TRUE) {
-          t<-as.data.frame.matrix(prop(table(TableCrois2[,VariableCrois1],
-                                              TableCrois2[,VariableCrois2], useNA = "always")))
+          if (is.null(OrdreTab1)==F) {
 
-          t$temp_VarCrois1 <- row.names(t)
-          t <- renomme.variable(t, "","<NA>")
-          t <- renomme.variable(t, "V1","")
-          t <- t[, c(ncol(t),1:(ncol(t)-1))]
-          names(t)[1] <- VariableCrois1
-          t
-        } else {
-          t<-as.data.frame.matrix(prop(table(TableCrois2[,VariableCrois1],
-                                              TableCrois2[,VariableCrois2])))
+            OrdreTab1 [OrdreTab1 == " " ]<- ""
+            OrdreTab1 <- c(OrdreTab1,"Sum")
+            t <- t %>% dplyr::slice(match(OrdreTab1,eval(parse(text=VariableCrois1)) ))
 
-          t$temp_VarCrois1 <- row.names(t)
-          t <- renomme.variable(t, "V1","")
-          t <- t[, c(ncol(t),1:(ncol(t)-1))]
-          names(t)[1] <- VariableCrois1
+            names(t)[names(t)=="Vide_Temp"]<- ""
+
+
+          }
+
+          if (is.null(OrdreTab2)==F) {
+
+            OrdreTab2 [OrdreTab2 == " " ]<- ""
+            OrdreTab2 <- c(OrdreTab2,"Sum")
+
+
+            names(t)[names(t)==""]<- "Vide_Temp"
+
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+
+            names(t) <- t[1,]
+            t <- t[-1,]
+            t$t_temp <- row.names(t)
+            t$t_temp[t$t_temp=="Vide_Temp"]<-""
+            t <- t %>% dplyr::slice(match(OrdreTab2,t_temp ))
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+            names(t) <- t[nrow(t),]
+            t <- t[-nrow(t),]
+
+            t$temp_VarCrois1 <- row.names(t)
+
+            t <- t[, c(ncol(t),1:(ncol(t)-1))]
+            names(t)[1] <- VariableCrois1
+            t[,VariableCrois1][t[,VariableCrois1]=="Vide_Temp"]<-""
+
+
+          }
+
+
+          names(t)[names(t)=="Vide_Temp"]<- ""
           t
 
         }
 
       }
+
+      else if (Reprez == "% lignes") {
+
+        if (AfficherNA == TRUE) {
+          t<-as.data.frame.matrix(rprop(table(TableCrois2[,VariableCrois1],
+                                              TableCrois2[,VariableCrois2], useNA = "always")))
+
+          t$temp_VarCrois1 <- row.names(t)
+          names(t)[is.na(names(t))]<-"NA"
+          t <- renomme.variable(t, "V1"," ")
+          t <- t[, c(ncol(t),1:(ncol(t)-1))]
+          names(t)[1] <- VariableCrois1
+          t[,1][is.na(t[,1])]<- "NA"
+
+
+
+          if (is.null(OrdreTab1)==F) {
+            OrdreTab1 [ OrdreTab1 == " "]<- ""
+            OrdreTab1 <- c(OrdreTab1, "Ensemble")
+            t <- t %>% dplyr::slice(match(OrdreTab1,eval(parse(text=VariableCrois1)) ))
+          }
+
+          if (is.null(OrdreTab2)==F) {
+            OrdreTab2 <- c(OrdreTab2,"Total")
+
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+            t[1,][t[1,]==""]<-"Vide_Temp"
+            names(t) <- t[1,]
+            t <- t[-1,]
+            t$t_temp <- row.names(t)
+            t$t_temp[t$t_temp=="V1"]<-""
+            t <- t %>% dplyr::slice(match(OrdreTab2,t_temp ))
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+            names(t) <- t[nrow(t),]
+            t <- t[-nrow(t),]
+
+            t$temp_VarCrois1 <- row.names(t)
+
+            t <- t[, c(ncol(t),1:(ncol(t)-1))]
+            names(t)[1] <- VariableCrois1
+            t[,VariableCrois1][t[,VariableCrois1]=="Vide_Temp"]<-""
+          }
+
+          t
+
+
+        }
+        else {
+          t<-as.data.frame.matrix(rprop(table(TableCrois2[,VariableCrois1],
+                                              TableCrois2[,VariableCrois2])))
+
+          t$temp_VarCrois1 <- row.names(t)
+          t <- renomme.variable(t, "V1"," ")
+          t <- t[, c(ncol(t),1:(ncol(t)-1))]
+          names(t)[1] <- VariableCrois1
+
+          if (is.null(OrdreTab1)==F) {
+            OrdreTab1 [OrdreTab1 == " " ]<- ""
+            OrdreTab1 <- c(OrdreTab1, "Ensemble")
+            t <- t %>% dplyr::slice(match(OrdreTab1,eval(parse(text=VariableCrois1)) ))
+
+          }
+
+          if (is.null(OrdreTab2)==F) {
+            OrdreTab2 <- c(OrdreTab2,"Total")
+
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+            t[1,][t[1,]==""]<-"Vide_Temp"
+            names(t) <- t[1,]
+            t <- t[-1,]
+            t$t_temp <- row.names(t)
+            t$t_temp[t$t_temp=="V1"]<-""
+            t <- t %>% dplyr::slice(match(OrdreTab2,t_temp ))
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+            names(t) <- t[nrow(t),]
+            t <- t[-nrow(t),]
+
+            t$temp_VarCrois1 <- row.names(t)
+
+            t <- t[, c(ncol(t),1:(ncol(t)-1))]
+            names(t)[1] <- VariableCrois1
+            t[,VariableCrois1][t[,VariableCrois1]=="Vide_Temp"]<-""
+
+          }
+          t
+
+        }
+
+      }
+
+
+      else if (Reprez == "% totaux") {
+
+
+
+        if (AfficherNA == TRUE) {
+          t<-as.data.frame.matrix(prop(table(TableCrois2[,VariableCrois1],
+                                              TableCrois2[,VariableCrois2], useNA = "always")))
+
+          t$temp_VarCrois1 <- row.names(t)
+          names(t)[is.na(names(t))]<-"NA"
+          t <- renomme.variable(t, "V1"," ")
+          t <- t[, c(ncol(t),1:(ncol(t)-1))]
+          names(t)[1] <- VariableCrois1
+          t[,1][is.na(t[,1])]<- "NA"
+
+
+
+          if (is.null(OrdreTab1)==F) {
+            OrdreTab1 [ OrdreTab1 == " "]<- ""
+            OrdreTab1 <- c(OrdreTab1, "Total")
+            t <- t %>% dplyr::slice(match(OrdreTab1,eval(parse(text=VariableCrois1)) ))
+          }
+
+          if (is.null(OrdreTab2)==F) {
+            OrdreTab2 <- c(OrdreTab2,"Total")
+
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+            t[1,][t[1,]==""]<-"Vide_Temp"
+            names(t) <- t[1,]
+            t <- t[-1,]
+            t$t_temp <- row.names(t)
+            t$t_temp[t$t_temp=="V1"]<-""
+            t <- t %>% dplyr::slice(match(OrdreTab2,t_temp ))
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+            names(t) <- t[nrow(t),]
+            t <- t[-nrow(t),]
+
+            t$temp_VarCrois1 <- row.names(t)
+
+            t <- t[, c(ncol(t),1:(ncol(t)-1))]
+            names(t)[1] <- VariableCrois1
+            t[,VariableCrois1][t[,VariableCrois1]=="Vide_Temp"]<-""
+          }
+
+          t
+
+
+        }
+        else {
+          t<-as.data.frame.matrix(prop(table(TableCrois2[,VariableCrois1],
+                                              TableCrois2[,VariableCrois2])))
+
+          t$temp_VarCrois1 <- row.names(t)
+          t <- renomme.variable(t, "V1"," ")
+          t <- t[, c(ncol(t),1:(ncol(t)-1))]
+          names(t)[1] <- VariableCrois1
+
+          if (is.null(OrdreTab1)==F) {
+            OrdreTab1 [OrdreTab1 == " " ]<- ""
+            OrdreTab1 <- c(OrdreTab1, "Total")
+            t <- t %>% dplyr::slice(match(OrdreTab1,eval(parse(text=VariableCrois1)) ))
+
+          }
+
+          if (is.null(OrdreTab2)==F) {
+            OrdreTab2 <- c(OrdreTab2,"Total")
+
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+            t[1,][t[1,]==""]<-"Vide_Temp"
+            names(t) <- t[1,]
+            t <- t[-1,]
+            t$t_temp <- row.names(t)
+            t$t_temp[t$t_temp=="V1"]<-""
+            t <- t %>% dplyr::slice(match(OrdreTab2,t_temp ))
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+            names(t) <- t[nrow(t),]
+            t <- t[-nrow(t),]
+
+            t$temp_VarCrois1 <- row.names(t)
+
+            t <- t[, c(ncol(t),1:(ncol(t)-1))]
+            names(t)[1] <- VariableCrois1
+            t[,VariableCrois1][t[,VariableCrois1]=="Vide_Temp"]<-""
+
+          }
+          t
+
+        }
+
+
+        } else {
+          t<-as.data.frame.matrix(prop(table(TableCrois2[,VariableCrois1],
+                                              TableCrois2[,VariableCrois2])))
+
+          t$temp_VarCrois1 <- row.names(t)
+          t <- renomme.variable(t, "V1"," ")
+          t <- t[, c(ncol(t),1:(ncol(t)-1))]
+          names(t)[1] <- VariableCrois1
+
+          if (is.null(OrdreTab1)==F) {
+            OrdreTab1 [OrdreTab1 == " " ]<- ""
+            OrdreTab1 <- c(OrdreTab1, "Total")
+            t <- t %>% dplyr::slice(match(OrdreTab1,eval(parse(text=VariableCrois1)) ))
+
+          }
+
+          if (is.null(OrdreTab2)==F) {
+            OrdreTab2 <- c(OrdreTab2,"Total")
+
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+            t[1,][t[1,]==""]<-"Vide_Temp"
+            names(t) <- t[1,]
+            t <- t[-1,]
+            t$t_temp <- row.names(t)
+            t$t_temp[t$t_temp=="V1"]<-""
+            t <- t %>% dplyr::slice(match(OrdreTab2,t_temp ))
+            t <-data.frame(t(t), stringsAsFactors = F)
+
+            names(t) <- t[nrow(t),]
+            t <- t[-nrow(t),]
+
+            t$temp_VarCrois1 <- row.names(t)
+
+            t <- t[, c(ncol(t),1:(ncol(t)-1))]
+            names(t)[1] <- VariableCrois1
+            t[,VariableCrois1][t[,VariableCrois1]=="Vide_Temp"]<-""
+
+          }
+          t
+
+        }
+
+
     }
+
+    # 4ème cas : Les deux variables sont quanti :
+    #------------------------------------------------------
+
 
     else if ((class(TableCrois2[,VariableCrois1])=="integer" |
               class(TableCrois2[,VariableCrois1])=="numeric") &
@@ -712,9 +1197,10 @@ shinyServer(function(input, output, session) {
               class(TableCrois2[,VariableCrois2])=="numeric")) {}
 
 
-    # 4ème cas : Les deux variables sont quanti :
 
     # 5ème cas : une var quali et une quanti :
+    #------------------------------------------------------
+
 
     else if ((class(TableCrois2[,VariableCrois1])=="character" |
               class(TableCrois2[,VariableCrois1])=="logical") &
@@ -744,9 +1230,16 @@ shinyServer(function(input, output, session) {
       tt <- tt[, c(ncol(tt), (1:ncol(tt)-1))]
       t <- rbind(t, tt)
 
-      t
-    }
+      if (is.null(OrdreTab1)==F)
+      {
+        OrdreTab1[OrdreTab1==" "]<- ""
+      OrdreTab1 <- c(OrdreTab1, "Ensemble")
 
+      t <- t %>% dplyr::slice(match(OrdreTab1,eval(parse(text=VariableCrois1)) ))}
+
+
+    }
+    t
 
 
   })
@@ -757,6 +1250,7 @@ shinyServer(function(input, output, session) {
   })
 
   output$ChoixGrapheOrdonne <- renderUI({
+
     TableCrois2 <- TableCrois2()
     VariableCrois1 <-  input$VariableCrois1
     VariableCrois2 <-  input$VariableCrois2
@@ -768,6 +1262,63 @@ shinyServer(function(input, output, session) {
     }
 
   })
+
+  ## Modalités pour l'ordre :
+  ModaOrdre <- reactive({
+    if (is.null(input$Variable1)) return (NULL)
+    TableCrois2 <- TableCrois2()
+    VariableCrois1 <- input$VariableCrois1
+    Choose_Field <- as.list(c(" ", unique(as.character(TableCrois2[,VariableCrois1]))))
+  })
+
+  ModaOrdreVar2 <- reactive({
+    if (is.null(input$Variable2)) return (NULL)
+    TableCrois2 <- TableCrois2()
+    VariableCrois2 <- input$VariableCrois2
+    Choose_Field <- as.list(c(" ",unique(as.character(TableCrois2[,VariableCrois2]))))
+  })
+
+  ModaOrdreGrid <- reactive({
+    if (is.null(input$FacetGrid)) return (NULL)
+    TableCrois2 <- TableCrois2()
+    FacetGrid <- input$FacetGrid
+    Choose_Field <- as.list(c(" ",unique(as.character(TableCrois2[,FacetGrid]))))
+  })
+
+
+  output$ChoixOrdre <- renderUI({
+
+    TableCrois2 <- TableCrois2()
+    VariableCrois1 <- input$VariableCrois1
+    ModaOrdre <- ModaOrdre()
+
+    if ((class(TableCrois2[,VariableCrois1])=="character" |
+         class(TableCrois2[,VariableCrois1])=="logical") )
+    {
+      selectizeInput(inputId = 'Ordre', label = "Variable 1",
+                     choices =  ModaOrdre,
+                     multiple = TRUE, width = '100%')
+    }
+
+  })
+  output$ChoixOrdreVar2 <- renderUI({
+
+    TableCrois2 <- TableCrois2()
+    VariableCrois2 <- input$VariableCrois2
+    ModaOrdre <- ModaOrdreVar2()
+
+    if ((class(TableCrois2[,VariableCrois2])=="character" |
+         class(TableCrois2[,VariableCrois2])=="logical") )
+    {
+      selectizeInput(inputId = 'OrdreVar2', label = "Variable 2",
+                     choices =  ModaOrdre,
+                     multiple = TRUE, width = '100%')
+    }
+
+  })
+
+
+
   output$ChoixGrapheSansNA <- renderUI({
     TableCrois2 <- TableCrois2()
     VariableCrois1 <-  input$VariableCrois1
@@ -857,21 +1408,22 @@ shinyServer(function(input, output, session) {
     } })
 
   output$ChoixGraphePas <- renderUI({
+
     TableCrois2 <- TableCrois2()
     VariableCrois1 <-  input$VariableCrois1
     VariableCrois2 <-  input$VariableCrois2
-    GrapheAffichage <- input$GrapheAffichage
 
-     if (((class(TableCrois2[,VariableCrois1])=="integer" |
-              class(TableCrois2[,VariableCrois1])=="numeric") &
-             VariableCrois2 == " ") |
-         ((class(TableCrois2[,VariableCrois1])=="character" |
-           class(TableCrois2[,VariableCrois1])=="logical") &
-          (class(TableCrois2[,VariableCrois2])=="integer" |
-           class(TableCrois2[,VariableCrois2])=="numeric") &
-          GrapheAffichage != "BoxPlot") ) {
-       numericInput("GraphePas", "Choix du pas :", 1)
-    }  })
+    numericInput("GraphePas", "Choix du pas (pour histogrammes) :", 1)
+
+    })
+
+  output$TitreLegende <- renderUI({
+    VariableCrois1 <-  input$VariableCrois1
+    VariableCrois2 <-  input$VariableCrois2
+    if ( VariableCrois1 != " " & VariableCrois2 != " ") {
+    textInput("TextLegende","Légende (auto. si vide) :", "")
+}
+        })
 
   output$ChoixGrapheAffichage <- renderUI({
     TableCrois2 <- TableCrois2()
@@ -885,8 +1437,8 @@ shinyServer(function(input, output, session) {
     if ((class(TableCrois2[,VariableCrois1])=="character" |
          class(TableCrois2[,VariableCrois1])=="logical") &
         VariableCrois2 == " ") {
-      selectInput("GrapheAffichage", "Affichage :",
-                  choices=as.list(c("Effectifs","Pourcentages")),selected="Effectifs")
+      selectInput("GrapheAffichage", "",
+                  choices=as.list(c("Effectifs","Pourcentages", "lignes (Effectifs)")),selected="Effectifs")
     }
 
     # Pour une var quanti :
@@ -895,7 +1447,7 @@ shinyServer(function(input, output, session) {
                   class(TableCrois2[,VariableCrois1])=="numeric") &
                  VariableCrois2 == " ") {
 
-      selectInput("GrapheAffichage", "Affichage :",
+      selectInput("GrapheAffichage", "",
                   choices=as.list(c("Boxplot","Histogramme (eff.)","Histogramme (pourc.)")),
                   selected="Boxplot")
 
@@ -934,8 +1486,8 @@ shinyServer(function(input, output, session) {
   })
 
 
-  # Graphique
-  #========================================================
+ # Graphique
+ #========================================================
 
   Graphique <- reactive ({
     TableCrois2 <- TableCrois2()
@@ -949,13 +1501,19 @@ shinyServer(function(input, output, session) {
     GrapheSansVideVar1 <- input$GrapheSansVideVar1
     GrapheSansVideVar2 <- input$GrapheSansVideVar2
     TextTitre <- input$TextTitre
+    TextLegende <- input$TextLegende
     GrapheAffichage <- input$GrapheAffichage
     AjoutEns <- input$AjoutEns
     GraphePas <- input$GraphePas
     GrapheEmpile <- input$GrapheEmpile
+    FacetGrid <- input$FacetGrid
+    Ordre <- input$Ordre
+    OrdreVar2 <- input$OrdreVar2
+    OrdreFacetGrid <- input$OrdreFacetGrid
 
     # 1er cas : Une seule variable quali
     #===========================================
+
 
     # Condition :
     if ((class(TableCrois2[,VariableCrois1])=="character" |
@@ -963,6 +1521,7 @@ shinyServer(function(input, output, session) {
         VariableCrois2 == " ") {
 
     # Options graphiques :
+
 
       if (GrapheSansNA == TRUE) {
         TableCrois2 <- TableCrois2[!(is.na(TableCrois2[,VariableCrois1])),]
@@ -984,10 +1543,36 @@ shinyServer(function(input, output, session) {
                                                 function(x) -length(x))
       }
 
+
+
+     if (is.null(Ordre)==F) {
+      TableCrois2[,VariableCrois1]<- factor(TableCrois2[,VariableCrois1], levels = Ordre)
+    }
+
       # Création du graphique :
 
       if (GrapheAffichage == "Effectifs") {
+       if (FacetGrid == " ") {
+         ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)), y=..count..)) +
+           geom_bar()+ # Type de représentation : diagramme en barres
+           labs(x=VariableCrois1, y="Effectifs") + # Titres des axes x et y
+           ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
+           theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
+                 axis.text.y = element_text(size=12),
+                 axis.title=element_text(size=14,face="bold"),
+                 title = element_text(size=16, face="bold"),
+                 plot.title=element_text(hjust = 0.5))
 
+       }
+
+         else if (FacetGrid != " ") {
+
+           if (is.null(OrdreFacetGrid) == F) {
+
+             OrdreFacetGrid [ OrdreFacetGrid == " "] <- ""
+             TableCrois2[,FacetGrid] <- factor(TableCrois2[,FacetGrid] ,
+                                               levels= OrdreFacetGrid)
+           }
 
 
       ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)), y=..count..)) +
@@ -998,11 +1583,15 @@ shinyServer(function(input, output, session) {
                 axis.text.y = element_text(size=12),
                 axis.title=element_text(size=14,face="bold"),
                 title = element_text(size=16, face="bold"),
-                plot.title=element_text(hjust = 0.5))
+                plot.title=element_text(hjust = 0.5)) +
+          facet_grid( eval(parse(text=FacetGrid))~.)
+        }
+
+
     }
      else if (GrapheAffichage == "Pourcentages") {
 
-
+       if (FacetGrid == " ") {
           ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)),
                                          y=((..count..)/sum(..count..)*100))) +
             geom_bar()+ # Type de représentation : diagramme en barres
@@ -1013,7 +1602,33 @@ shinyServer(function(input, output, session) {
                   axis.title=element_text(size=14,face="bold"),
                   title = element_text(size=16, face="bold"),
                   plot.title=element_text(hjust = 0.5)) # Angle et position des items de l'axe x
-        }
+       } else if ( FacetGrid != " ") {
+
+         if (is.null(OrdreFacetGrid) == F) {
+           OrdreFacetGrid [ OrdreFacetGrid == " "] <- ""
+           TableCrois2[,FacetGrid] <- factor(TableCrois2[,FacetGrid] ,
+                                             levels= OrdreFacetGrid)
+         }
+
+         ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)),
+                                        y=((..count..)/sum(..count..)*100))) +
+           geom_bar()+ # Type de représentation : diagramme en barres
+           labs(x=VariableCrois1, y="Pourcentages") + # Titres des axes x et y
+           ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
+           theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
+                 axis.text.y = element_text(size=12),
+                 axis.title=element_text(size=14,face="bold"),
+                 title = element_text(size=16, face="bold"),
+                 plot.title=element_text(hjust = 0.5)) +
+           facet_grid( eval(parse(text=FacetGrid))~.)
+         }
+
+       }
+      else if (GrapheAffichage == "lignes (Effectifs)") {
+
+      }
+
+
       }
 
 
@@ -1051,6 +1666,7 @@ shinyServer(function(input, output, session) {
 
       else if (GrapheAffichage == "Histogramme (eff.)" ){
 
+        if (FacetGrid == " "){
           ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)))) +
           geom_histogram(binwidth=GraphePas, colour="black",na.rm=T) +
           xlab(VariableCrois1) +
@@ -1061,13 +1677,35 @@ shinyServer(function(input, output, session) {
                 axis.title=element_text(size=14,face="bold"),
                 title = element_text(size=16, face="bold"),
                 plot.title=element_text(hjust = 0.5))
+          }
+
+       else if (FacetGrid != " ") {
+
+         if (is.null(OrdreFacetGrid) == F) {
+           OrdreFacetGrid [ OrdreFacetGrid == " "] <- ""
+           TableCrois2[,FacetGrid] <- factor(TableCrois2[,FacetGrid] ,
+                                             levels= OrdreFacetGrid)
+         }
+          ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)))) +
+            geom_histogram(binwidth=GraphePas, colour="black",na.rm=T) +
+            xlab(VariableCrois1) +
+            ylab("Effectifs") +
+            ggtitle(TextTitreDef)  +
+            theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
+                  axis.text.y = element_text(size=12),
+                  axis.title=element_text(size=14,face="bold"),
+                  title = element_text(size=16, face="bold"),
+                  plot.title=element_text(hjust = 0.5))+
+                    facet_grid( eval(parse(text=FacetGrid))~.)
+          }
+        }
 
 
-      }
 
       else if (GrapheAffichage == "Histogramme (pourc.)") {
 
 
+        if (FacetGrid == " "){
         ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)),
                                        y= (..count../sum(..count..)*100)
         )) +
@@ -1081,8 +1719,30 @@ shinyServer(function(input, output, session) {
                 axis.text.y = element_text(size=12),
                 axis.title=element_text(size=14,face="bold"),
                 title = element_text(size=16, face="bold"),
-                plot.title=element_text(hjust = 0.5))
+                plot.title=element_text(hjust = 0.5))}
 
+     else   if (FacetGrid != " ") {
+
+       if (is.null(OrdreFacetGrid) == F) {
+         OrdreFacetGrid [ OrdreFacetGrid == " "] <- ""
+         TableCrois2[,FacetGrid] <- factor(TableCrois2[,FacetGrid] ,
+                                           levels= OrdreFacetGrid)
+       }
+          ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)),
+                                         y= (..count../sum(..count..)*100)
+          )) +
+            geom_histogram( binwidth=GraphePas, colour="black", na.rm=T) +
+
+            xlab(VariableCrois1) +
+            ylab("Pourcentage (%)") +
+            ggtitle(TextTitreDef)  +
+            theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
+                  axis.text.y = element_text(size=12),
+                  axis.title=element_text(size=14,face="bold"),
+                  title = element_text(size=16, face="bold"),
+                  plot.title=element_text(hjust = 0.5)) +
+            facet_grid( eval(parse(text=FacetGrid))~.)
+        }
       }
 
     }
@@ -1128,6 +1788,12 @@ shinyServer(function(input, output, session) {
       if (TextTitre != "") {
         TextTitreDef <- TextTitre
       }
+      if (TextLegende == "") {
+        TextLegendeDef <- VariableCrois2
+      }
+      if (TextLegende != "") {
+        TextLegendeDef <- TextLegende
+      }
 
     if (GrapheOrdonne == TRUE) {
 
@@ -1136,6 +1802,13 @@ shinyServer(function(input, output, session) {
                                               function(x) -length(x))
     }
 
+      if (is.null(Ordre)==F) {
+        TableCrois3[,VariableCrois1]<- factor(TableCrois3[,VariableCrois1], levels = Ordre)
+      }
+
+      if (is.null(OrdreVar2)==F) {
+        TableCrois3[,VariableCrois2]<- factor(TableCrois3[,VariableCrois2], levels = OrdreVar2)
+      }
 
       if (GrapheSansNAVar1 == TRUE) {
         TableCrois3 <- TableCrois3[!(is.na(TableCrois3[,VariableCrois1])),]
@@ -1153,6 +1826,7 @@ shinyServer(function(input, output, session) {
     # Création du graphique :
 
       if (GrapheAffichage == "Effectifs") {
+        if (FacetGrid == " ") {
 
 
 
@@ -1169,11 +1843,37 @@ shinyServer(function(input, output, session) {
                   legend.text=element_text(size=12),
                   title = element_text(size=16, face="bold"),
                   plot.title=element_text(hjust = 0.5)) # Angle et position des items de l'axe x
+        }
+        else if (FacetGrid != " ") {
 
+          if (is.null(OrdreFacetGrid) == F) {
+            OrdreFacetGrid [ OrdreFacetGrid == " "] <- ""
+            TableCrois3[,FacetGrid] <- factor(TableCrois3[,FacetGrid] ,
+                                              levels= OrdreFacetGrid)
+          }
+
+          ggplot (data=TableCrois3, aes (x=eval(parse(text=VariableCrois1)),
+                                         y=..count..,
+                                         fill = eval(parse(text=VariableCrois2)))) +
+            geom_bar( colour="black", position=Empile)+ # Type de représentation : diagramme en barres
+            labs(x=VariableCrois1, y="Effectifs") + # Titres des axes x et y
+            ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
+            scale_fill_brewer(name=VariableCrois2, palette = "Spectral")  +
+            theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
+                  axis.text.y = element_text(size=12),
+                  axis.title=element_text(size=14,face="bold"),
+                  legend.text=element_text(size=12),
+                  title = element_text(size=16, face="bold"),
+                  plot.title=element_text(hjust = 0.5)) +
+            facet_grid( eval(parse(text=FacetGrid))~.)
+
+        }
 
 
         }
       else if (GrapheAffichage == "Pourcentages (de var. 1)") {
+        if (FacetGrid == " ")
+        {
 
 
 
@@ -1188,14 +1888,48 @@ shinyServer(function(input, output, session) {
             geom_bar( colour="black", position=Empile, stat="identity")+ # Type de représentation : diagramme en barres
             labs(x=VariableCrois1, y="Pourcentage (%)") + # Titres des axes x et y
             ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
-            scale_fill_brewer(name=VariableCrois2, palette = "Spectral")  +
+            scale_fill_brewer(name=TextLegendeDef, palette = "Spectral")  +
             theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
                   axis.title=element_text(size=14,face="bold"),
                   axis.text.y = element_text(size=12),
                   legend.text=element_text(size=12),
                   title = element_text(size=16, face="bold"),
                   plot.title=element_text(hjust = 0.5)) # Angle et position des items de l'axe x
+        }
+        else if (FacetGrid != " ")
+        {
 
+          if (is.null(OrdreFacetGrid) == F) {
+            OrdreFacetGrid [ OrdreFacetGrid == " "] <- ""
+            TableCrois3[,FacetGrid] <- factor(TableCrois3[,FacetGrid] ,
+                                              levels= OrdreFacetGrid)
+          }
+
+          TableCrois4 <- TableCrois3 %>% group_by (eval(parse(text=VariableCrois1)),
+                                                   eval(parse(text=VariableCrois2)),
+                                                   eval(parse(text=FacetGrid))) %>%
+            dplyr::summarise (n=n())%>%  dplyr::mutate(percent = (n / sum(n)*100))
+          names(TableCrois4)[1]<- VariableCrois1
+          names(TableCrois4)[2]<- VariableCrois2
+          names(TableCrois4)[3]<- FacetGrid
+
+
+          ggplot (data=TableCrois4, aes (x=eval(parse(text=VariableCrois1)),
+                                         y=percent,
+                                         fill = eval(parse(text=VariableCrois2)))) +
+            geom_bar( colour="black", position=Empile, stat="identity")+ # Type de représentation : diagramme en barres
+            labs(x=VariableCrois1, y="Pourcentage (%)") + # Titres des axes x et y
+            ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
+            scale_fill_brewer(name=TextLegendeDef, palette = "Spectral")  +
+            theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
+                  axis.title=element_text(size=14,face="bold"),
+                  axis.text.y = element_text(size=12),
+                  legend.text=element_text(size=12),
+                  title = element_text(size=16, face="bold"),
+                  plot.title=element_text(hjust = 0.5)) +
+            facet_grid( eval(parse(text=FacetGrid))~.)
+
+        }
 
       }
     }
@@ -1250,12 +1984,21 @@ shinyServer(function(input, output, session) {
       if (TextTitre != "") {
         TextTitreDef <- TextTitre
       }
+      if (TextLegende == "") {
+        TextLegendeDef <- VariableCrois2
+      }
+      if (TextLegende != "") {
+        TextLegendeDef <- TextLegende
+      }
 
       if (GrapheOrdonne == TRUE) {
 
         TableCrois2[,VariableCrois1] <- reorder(TableCrois2[,VariableCrois1],
                                                 TableCrois2[,VariableCrois1],
                                                 function(x) -length(x))
+      }
+      if (is.null(Ordre)==F) {
+        TableCrois2[,VariableCrois1]<- factor(TableCrois2[,VariableCrois1], levels = Ordre)
       }
 
       if (GrapheSansNAVar1 == TRUE) {
@@ -1277,7 +2020,7 @@ shinyServer(function(input, output, session) {
         geom_boxplot( colour="black", position = Empile) +
         ggtitle(TextTitreDef)+
         labs(y=VariableCrois2,x="") +
-         scale_fill_brewer(name=VariableCrois2, palette = "Spectral")  +
+         scale_fill_brewer(name=TextLegendeDef, palette = "Spectral")  +
        theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
              axis.text.y = element_text(size=12),
              axis.title=element_text(size=14,face="bold"),
@@ -1294,7 +2037,7 @@ shinyServer(function(input, output, session) {
           xlab(VariableCrois2) +
           ylab("Effectifs") +
           ggtitle(TextTitreDef)  +
-          scale_fill_brewer(name=VariableCrois1, palette = "Spectral")  +
+          scale_fill_brewer(name=TextLegendeDef, palette = "Spectral")  +
           theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
                 axis.text.y = element_text(size=12),
                 legend.text=element_text(size=12),
@@ -1310,11 +2053,18 @@ shinyServer(function(input, output, session) {
 
   })
 
-  output$Graphique <- renderPlot ({
+  output$Graphique <- renderPlot (
+    {
+      Graphique()
+    })
 
-    Graphique()
+  observe({
+  output$Graphique2 <- renderPlot (
+    {
+      Graphique()
+    }, height = input$hauteur, width = input$largeur)
+
   })
-
 
   # C/ EN SORTIE : Tables et graphiques
   #========================================================
