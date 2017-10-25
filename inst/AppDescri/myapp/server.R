@@ -1511,6 +1511,18 @@ shinyServer(function(input, output, session) {
     OrdreVar2 <- input$OrdreVar2
     OrdreFacetGrid <- input$OrdreFacetGrid
 
+    if (is.null(Ordre) == F) {
+      Ordre [ Ordre == " "]<- ""
+    }
+
+    if (is.null(OrdreVar2) == F) {
+      OrdreVar2 [ OrdreVar2 == " "]<- ""
+    }
+
+    if (is.null(OrdreFacetGrid) == F) {
+      OrdreFacetGrid [ OrdreFacetGrid == " "]<- ""
+    }
+
     # 1er cas : Une seule variable quali
     #===========================================
 
@@ -1569,7 +1581,6 @@ shinyServer(function(input, output, session) {
 
            if (is.null(OrdreFacetGrid) == F) {
 
-             OrdreFacetGrid [ OrdreFacetGrid == " "] <- ""
              TableCrois2[,FacetGrid] <- factor(TableCrois2[,FacetGrid] ,
                                                levels= OrdreFacetGrid)
            }
@@ -1605,7 +1616,7 @@ shinyServer(function(input, output, session) {
        } else if ( FacetGrid != " ") {
 
          if (is.null(OrdreFacetGrid) == F) {
-           OrdreFacetGrid [ OrdreFacetGrid == " "] <- ""
+
            TableCrois2[,FacetGrid] <- factor(TableCrois2[,FacetGrid] ,
                                              levels= OrdreFacetGrid)
          }
@@ -1682,7 +1693,7 @@ shinyServer(function(input, output, session) {
        else if (FacetGrid != " ") {
 
          if (is.null(OrdreFacetGrid) == F) {
-           OrdreFacetGrid [ OrdreFacetGrid == " "] <- ""
+
            TableCrois2[,FacetGrid] <- factor(TableCrois2[,FacetGrid] ,
                                              levels= OrdreFacetGrid)
          }
@@ -1724,7 +1735,7 @@ shinyServer(function(input, output, session) {
      else   if (FacetGrid != " ") {
 
        if (is.null(OrdreFacetGrid) == F) {
-         OrdreFacetGrid [ OrdreFacetGrid == " "] <- ""
+
          TableCrois2[,FacetGrid] <- factor(TableCrois2[,FacetGrid] ,
                                            levels= OrdreFacetGrid)
        }
@@ -1836,7 +1847,7 @@ shinyServer(function(input, output, session) {
             geom_bar( colour="black", position=Empile)+ # Type de représentation : diagramme en barres
             labs(x=VariableCrois1, y="Effectifs") + # Titres des axes x et y
             ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
-            scale_fill_brewer(name=VariableCrois2, palette = "Spectral")  +
+            scale_fill_brewer(name=TextLegendeDef, palette = "Spectral")  +
             theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
                   axis.text.y = element_text(size=12),
                   axis.title=element_text(size=14,face="bold"),
@@ -1847,7 +1858,7 @@ shinyServer(function(input, output, session) {
         else if (FacetGrid != " ") {
 
           if (is.null(OrdreFacetGrid) == F) {
-            OrdreFacetGrid [ OrdreFacetGrid == " "] <- ""
+
             TableCrois3[,FacetGrid] <- factor(TableCrois3[,FacetGrid] ,
                                               levels= OrdreFacetGrid)
           }
@@ -1858,7 +1869,7 @@ shinyServer(function(input, output, session) {
             geom_bar( colour="black", position=Empile)+ # Type de représentation : diagramme en barres
             labs(x=VariableCrois1, y="Effectifs") + # Titres des axes x et y
             ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
-            scale_fill_brewer(name=VariableCrois2, palette = "Spectral")  +
+            scale_fill_brewer(name=TextLegendeDef, palette = "Spectral")  +
             theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
                   axis.text.y = element_text(size=12),
                   axis.title=element_text(size=14,face="bold"),
@@ -1900,7 +1911,7 @@ shinyServer(function(input, output, session) {
         {
 
           if (is.null(OrdreFacetGrid) == F) {
-            OrdreFacetGrid [ OrdreFacetGrid == " "] <- ""
+
             TableCrois3[,FacetGrid] <- factor(TableCrois3[,FacetGrid] ,
                                               levels= OrdreFacetGrid)
           }
