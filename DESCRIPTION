@@ -1,8 +1,9 @@
 Package: Descriptives
 Type: Package
 Title: Tris à plat et tris croisés
-Version: 0.1
+Version: 0.2
 Imports: shiny,
+	 shinyjqui,
          stringr,
          questionr,
          shinythemes,
@@ -14,7 +15,7 @@ Imports: shiny,
 	 scales
 Author: Grisoudre
 Maintainer: Grisoudre <cecile.rodrigues@parisnanterre.fr>
-Description: Production de tableaux et graphes (analayses univariées et bivariées)
+Description: 
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
