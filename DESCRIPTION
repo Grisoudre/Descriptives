@@ -1,6 +1,6 @@
-Package: Descriptives
+ï»¿Package: Descriptives
 Type: Package
-Title: Tris à plat et tris croisés
+Title: Tris Ã  plat et tris croisÃ©s
 Version: 0.2
 Imports: shiny,
 	 shinyjqui,
