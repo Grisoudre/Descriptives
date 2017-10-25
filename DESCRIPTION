@@ -1,4 +1,4 @@
-Package: Descriptives
+﻿Package: Descriptives
 Type: Package
 Title: Tris à plat et tris croisés
 Version: 0.2
@@ -9,8 +9,8 @@ Imports: shiny,
          shinythemes,
          shinyjs,
          ggplot2,
-         dplyr
-         tidyr,
+         dplyr (>= 0.7),
+         tidyr (>= 0.7),
 	 forcats,
 	 scales
 Author: Grisoudre
