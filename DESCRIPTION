@@ -9,8 +9,8 @@ Imports: shiny,
          shinythemes,
          shinyjs,
          ggplot2,
-         dplyr (>= 0.7),
-         tidyr (>= 0.7),
+         dplyr,
+         tidyr,
 	 forcats,
 	 scales
 Author: Grisoudre
