@@ -1,22 +1,21 @@
 ﻿Package: Descriptives
 Type: Package
-Title: Tris à plat et tris croisés
+Title: Application de statistiques descriptives
 Version: 0.2
-Imports: 
-	shiny,
-	shinyjqui,
-        stringr,
-        questionr,
-        shinythemes,
-        shinyjs,
-        ggplot2,
-        dplyr,
-        tidyr,
-	forcats,
-	scales
+Imports: shiny,
+         shinyjqui,
+         stringr,
+         questionr,
+         shinythemes,
+         shinyjs,
+         ggplot2,
+         dplyr,
+         tidyr
+	 forcats,
+	 scales
 Author: Grisoudre
-Maintainer: Grisoudre <cecile.rodrigues@parisnanterre.fr>
-Description: 
+Maintainer: Grisoudre <crodrigues@parisnanterre.fr>
+Description: Lancement d'une application pour faire des statistiques descriptives
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
