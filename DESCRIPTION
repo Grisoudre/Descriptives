@@ -3,16 +3,16 @@ Type: Package
 Title: Tris à plat et tris croisés
 Version: 0.2
 Imports: shiny,
-		 shinyjqui,
+	 shinyjqui,
          stringr,
          questionr,
          shinythemes,
          shinyjs,
          ggplot2,
-         dplyr (>= 0.7.1),
-         tidyr (>= 0.7.1),
-		 forcats,
-		 scales
+         dplyr(>= 0.7.1),
+         tidyr(>= 0.7.1),
+	 forcats,
+	 scales
 Author: Grisoudre
 Maintainer: Grisoudre <cecile.rodrigues@parisnanterre.fr>
 Description: 
