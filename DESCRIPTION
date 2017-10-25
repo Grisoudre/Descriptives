@@ -10,7 +10,7 @@ Imports: shiny,
          shinyjs,
          ggplot2,
          dplyr,
-         tidyr
+         tidyr,
 	 forcats,
 	 scales
 Author: Grisoudre
