@@ -188,6 +188,8 @@ shinyUI(
                              column(3,
                              wellPanel("Titres :",
                                        textInput("TextTitre","Général (auto. si vide) :", ""),
+                                       textInput("TextTitreX","Axe variable 1 (auto. si vide) :", ""),
+                                       textInput("TextTitreY","Axe variable 2 (auto. si vide) :", ""),
                                        uiOutput("TitreLegende")))),
                              fluidRow(column(3,
                              uiOutput("ChoixGraphePas"),

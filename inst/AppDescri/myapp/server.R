@@ -1501,6 +1501,8 @@ shinyServer(function(input, output, session) {
     GrapheSansVideVar1 <- input$GrapheSansVideVar1
     GrapheSansVideVar2 <- input$GrapheSansVideVar2
     TextTitre <- input$TextTitre
+    TextTitreX <- input$TextTitreX
+    TextTitreY <- input$TextTitreY
     TextLegende <- input$TextLegende
     GrapheAffichage <- input$GrapheAffichage
     AjoutEns <- input$AjoutEns
@@ -1548,6 +1550,12 @@ shinyServer(function(input, output, session) {
       if (TextTitre != "") {
         TextTitreDef <- TextTitre
       }
+      if (TextTitreX == "") {
+        TextTitreDefX <- paste0 (VariableCrois1)
+      }
+      if (TextTitreX != "") {
+        TextTitreDefX <- TextTitreX
+      }
       if (GrapheOrdonne == TRUE) {
 
         TableCrois2[,VariableCrois1] <- reorder(TableCrois2[,VariableCrois1],
@@ -1558,7 +1566,11 @@ shinyServer(function(input, output, session) {
 
 
      if (is.null(Ordre)==F) {
-      TableCrois2[,VariableCrois1]<- factor(TableCrois2[,VariableCrois1], levels = Ordre)
+           if (AjoutEns == T) {
+        Ordre <- c(Ordre, "Ensemble")
+      }
+       TableCrois2[,VariableCrois1]<- factor(TableCrois2[,VariableCrois1], levels = Ordre)
+
     }
 
       # Création du graphique :
@@ -1567,7 +1579,7 @@ shinyServer(function(input, output, session) {
        if (FacetGrid == " ") {
          ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)), y=..count..)) +
            geom_bar()+ # Type de représentation : diagramme en barres
-           labs(x=VariableCrois1, y="Effectifs") + # Titres des axes x et y
+           labs(x=TextTitreDefX, y="Effectifs") + # Titres des axes x et y
            ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
            theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
                  axis.text.y = element_text(size=12),
@@ -1588,7 +1600,7 @@ shinyServer(function(input, output, session) {
 
       ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)), y=..count..)) +
         geom_bar()+ # Type de représentation : diagramme en barres
-        labs(x=VariableCrois1, y="Effectifs") + # Titres des axes x et y
+        labs(x=TextTitreDefX, y="Effectifs") + # Titres des axes x et y
         ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
           theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
                 axis.text.y = element_text(size=12),
@@ -1606,7 +1618,7 @@ shinyServer(function(input, output, session) {
           ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)),
                                          y=((..count..)/sum(..count..)*100))) +
             geom_bar()+ # Type de représentation : diagramme en barres
-            labs(x=VariableCrois1, y="Pourcentages") + # Titres des axes x et y
+            labs(x=TextTitreDefX, y="Pourcentages") + # Titres des axes x et y
             ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
             theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
                   axis.text.y = element_text(size=12),
@@ -1624,7 +1636,7 @@ shinyServer(function(input, output, session) {
          ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)),
                                         y=((..count..)/sum(..count..)*100))) +
            geom_bar()+ # Type de représentation : diagramme en barres
-           labs(x=VariableCrois1, y="Pourcentages") + # Titres des axes x et y
+           labs(x=TextTitreDefX, y="Pourcentages") + # Titres des axes x et y
            ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
            theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
                  axis.text.y = element_text(size=12),
@@ -1662,12 +1674,18 @@ shinyServer(function(input, output, session) {
         TextTitreDef <- TextTitre
       }
 
+      if (TextTitreX == "") {
+        TextTitreDefX <- paste0 (VariableCrois1)
+      }
+      if (TextTitreX != "") {
+        TextTitreDefX <- TextTitreX
+      }
       # Création du graphique :
       if (GrapheAffichage == "Boxplot") {
         ggplot (data=TableCrois2, aes (x="Ensemble",y=eval(parse(text=VariableCrois1)))) +
           geom_boxplot() +
           ggtitle(TextTitreDef) +
-          ylab(VariableCrois1)+
+          ylab(TextTitreDefX)+
           xlab("")+
         theme(
               title = element_text(size=16, face="bold"),
@@ -1680,7 +1698,7 @@ shinyServer(function(input, output, session) {
         if (FacetGrid == " "){
           ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)))) +
           geom_histogram(binwidth=GraphePas, colour="black",na.rm=T) +
-          xlab(VariableCrois1) +
+          xlab(TextTitreDefX) +
           ylab("Effectifs") +
           ggtitle(TextTitreDef)  +
           theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
@@ -1699,7 +1717,7 @@ shinyServer(function(input, output, session) {
          }
           ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois1)))) +
             geom_histogram(binwidth=GraphePas, colour="black",na.rm=T) +
-            xlab(VariableCrois1) +
+            xlab(TextTitreDefX) +
             ylab("Effectifs") +
             ggtitle(TextTitreDef)  +
             theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
@@ -1722,7 +1740,7 @@ shinyServer(function(input, output, session) {
         )) +
           geom_histogram( binwidth=GraphePas, colour="black", na.rm=T) +
 
-        xlab(VariableCrois1) +
+        xlab(TextTitreDefX) +
           ylab("Pourcentage (%)") +
           ggtitle(TextTitreDef)  +
 
@@ -1744,7 +1762,7 @@ shinyServer(function(input, output, session) {
           )) +
             geom_histogram( binwidth=GraphePas, colour="black", na.rm=T) +
 
-            xlab(VariableCrois1) +
+            xlab(TextTitreDefX) +
             ylab("Pourcentage (%)") +
             ggtitle(TextTitreDef)  +
             theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
@@ -1784,7 +1802,7 @@ shinyServer(function(input, output, session) {
 
       TableCrois3[,VariableCrois1]<-forcats::fct_relevel(TableCrois3[,VariableCrois1],
                                                          "Ensemble", after = Inf)
-      Ordre <- c(Ordre, "Ensemble")
+
     }
       if (AjoutEns == FALSE) {
 
@@ -1799,6 +1817,22 @@ shinyServer(function(input, output, session) {
       if (TextTitre != "") {
         TextTitreDef <- TextTitre
       }
+
+      if (TextTitreX == "") {
+        TextTitreDefX <- paste0 (VariableCrois1)
+      }
+      if (TextTitreX != "") {
+        TextTitreDefX <- TextTitreX
+      }
+
+      if (TextTitreY == "") {
+        TextTitreDefY <- paste0 (VariableCrois2)
+      }
+      if (TextTitreY != "") {
+        TextTitreDefY <- TextTitreY
+      }
+
+
       if (TextLegende == "") {
         TextLegendeDef <- VariableCrois2
       }
@@ -1814,7 +1848,11 @@ shinyServer(function(input, output, session) {
     }
 
       if (is.null(Ordre)==F) {
-        TableCrois3[,VariableCrois1]<- factor(TableCrois3[,VariableCrois1], levels = Ordre)
+           if (AjoutEns == T) {
+        Ordre <- c(Ordre, "Ensemble")
+        }
+         TableCrois3[,VariableCrois1]<- factor(TableCrois3[,VariableCrois1], levels = Ordre)
+
       }
 
       if (is.null(OrdreVar2)==F) {
@@ -1845,7 +1883,7 @@ shinyServer(function(input, output, session) {
                                          y=..count..,
                                          fill = eval(parse(text=VariableCrois2)))) +
             geom_bar( colour="black", position=Empile)+ # Type de représentation : diagramme en barres
-            labs(x=VariableCrois1, y="Effectifs") + # Titres des axes x et y
+            labs(x=TextTitreDefX, y="Effectifs") + # Titres des axes x et y
             ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
             scale_fill_brewer(name=TextLegendeDef, palette = "Spectral")  +
             theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
@@ -1867,7 +1905,7 @@ shinyServer(function(input, output, session) {
                                          y=..count..,
                                          fill = eval(parse(text=VariableCrois2)))) +
             geom_bar( colour="black", position=Empile)+ # Type de représentation : diagramme en barres
-            labs(x=VariableCrois1, y="Effectifs") + # Titres des axes x et y
+            labs(x=TextTitreDefX, y="Effectifs") + # Titres des axes x et y
             ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
             scale_fill_brewer(name=TextLegendeDef, palette = "Spectral")  +
             theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
@@ -1897,7 +1935,7 @@ shinyServer(function(input, output, session) {
                                          y=percent,
                                          fill = eval(parse(text=VariableCrois2)))) +
             geom_bar( colour="black", position=Empile, stat="identity")+ # Type de représentation : diagramme en barres
-            labs(x=VariableCrois1, y="Pourcentage (%)") + # Titres des axes x et y
+            labs(x=TextTitreDefX, y="Pourcentage (%)") + # Titres des axes x et y
             ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
             scale_fill_brewer(name=TextLegendeDef, palette = "Spectral")  +
             theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
@@ -1929,7 +1967,7 @@ shinyServer(function(input, output, session) {
                                          y=percent,
                                          fill = eval(parse(text=VariableCrois2)))) +
             geom_bar( colour="black", position=Empile, stat="identity")+ # Type de représentation : diagramme en barres
-            labs(x=VariableCrois1, y="Pourcentage (%)") + # Titres des axes x et y
+            labs(x=TextTitreDefX, y="Pourcentage (%)") + # Titres des axes x et y
             ggtitle(TextTitreDef)+ # Titre du graphique (\n : saut de ligne)
             scale_fill_brewer(name=TextLegendeDef, palette = "Spectral")  +
             theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
@@ -1980,7 +2018,7 @@ shinyServer(function(input, output, session) {
 
         TableCrois2[,VariableCrois1]<-forcats::fct_relevel(TableCrois2[,VariableCrois1],
                                                            "Ensemble", after = Inf)
-        Ordre <- c(Ordre, "Ensemble")
+
       }
       if (AjoutEns == FALSE) {
 
@@ -1992,9 +2030,32 @@ shinyServer(function(input, output, session) {
         TextTitreDef <- paste0 ("Dispersion de ",VariableCrois2,
                                 " en fonction de ", VariableCrois1)
       }
+
       if (TextTitre != "") {
         TextTitreDef <- TextTitre
       }
+
+      if (TextTitreX != "") {
+        TextTitreDefX <- TextTitreX
+      }
+
+
+      if (TextTitreX == "") {
+        TextTitreDefX <- paste0 (VariableCrois1)
+      }
+
+
+      if (TextTitreY != "") {
+        TextTitreDefY <- TextTitreY
+      }
+
+
+      if (TextTitreY == "") {
+        TextTitreDefY <- paste0 (VariableCrois2)
+      }
+
+
+
       if (TextLegende == "") {
         TextLegendeDef <- VariableCrois2
       }
@@ -2009,7 +2070,12 @@ shinyServer(function(input, output, session) {
                                                 function(x) -length(x))
       }
       if (is.null(Ordre)==F) {
+          if (AjoutEns == T) {
+          Ordre <- c(Ordre, "Ensemble")
+        }
+
         TableCrois2[,VariableCrois1]<- factor(TableCrois2[,VariableCrois1], levels = Ordre)
+
       }
 
       if (GrapheSansNAVar1 == TRUE) {
@@ -2030,7 +2096,7 @@ shinyServer(function(input, output, session) {
                                   fill=eval(parse(text=VariableCrois1)))) +
         geom_boxplot( colour="black", position = Empile) +
         ggtitle(TextTitreDef)+
-        labs(y=VariableCrois2,x="") +
+        labs(y=TextTitreDefY,x="") +
          scale_fill_brewer(name=TextLegendeDef, palette = "Spectral")  +
        theme(axis.text.x = element_text(angle=30, hjust=1, vjust=1,size=12),
              axis.text.y = element_text(size=12),
@@ -2045,7 +2111,7 @@ shinyServer(function(input, output, session) {
         ggplot (data=TableCrois2, aes (x=eval(parse(text=VariableCrois2)),
                                        fill =eval(parse(text=VariableCrois1)) )) +
           geom_histogram(binwidth=GraphePas, colour="black",na.rm=T, position = Empile) +
-          xlab(VariableCrois2) +
+          xlab(TextTitreDefY) +
           ylab("Effectifs") +
           ggtitle(TextTitreDef)  +
           scale_fill_brewer(name=TextLegendeDef, palette = "Spectral")  +
