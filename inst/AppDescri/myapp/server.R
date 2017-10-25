@@ -1784,7 +1784,7 @@ shinyServer(function(input, output, session) {
 
       TableCrois3[,VariableCrois1]<-forcats::fct_relevel(TableCrois3[,VariableCrois1],
                                                          "Ensemble", after = Inf)
-
+      Ordre <- c(Ordre, "Ensemble")
     }
       if (AjoutEns == FALSE) {
 
@@ -1980,7 +1980,7 @@ shinyServer(function(input, output, session) {
 
         TableCrois2[,VariableCrois1]<-forcats::fct_relevel(TableCrois2[,VariableCrois1],
                                                            "Ensemble", after = Inf)
-
+        Ordre <- c(Ordre, "Ensemble")
       }
       if (AjoutEns == FALSE) {
 
